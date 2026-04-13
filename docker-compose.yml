@@ -1,0 +1,20 @@
+services:
+  multi-uav-grid:
+    build:
+      context: .
+      dockerfile: Dockerfile.multi-uav-grid
+    image: multi-uav-grid:latest
+    # Override for shorter smoke tests, e.g.:
+    # command: ["python", "-m", "multi_uav_grid", "--train-episodes", "100", "--test-episodes", "50", "--log-every", "10"]
+    command:
+      - python
+      - -m
+      - multi_uav_grid
+      - --train-episodes
+      - "5000"
+      - --test-episodes
+      - "1000"
+      - --log-every
+      - "100"
+      - --log-level
+      - INFO

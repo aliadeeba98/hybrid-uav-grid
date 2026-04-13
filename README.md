@@ -1,60 +1,180 @@
 # Multi-UAV grid hybrid planner
 
-Main script: [`multi_uav_grid_hybrid_planner.py`](multi_uav_grid_hybrid_planner.py) (formerly `hybrid_adeebs.py`).
+Multi-UAV path planning on a grid with random obstacles. A **hybrid controller** (BFS + reservations + goal-zone holding) runs every step; an **Actor** is trained with **behavior cloning** (cross-entropy on logits). Success means all UAVs end within Euclidean distance ≤ 1 of their goals with **no obstacle or inter-agent collision** in the episode.
 
-Multi-UAV path planning on a 20×20 grid with random obstacles. The script runs a **hybrid controller** (heuristic planner) each environment step and trains an **Actor** network with **behavior cloning** (imitation) on the actions the hybrid produces. Training and test success are measured as: all UAVs end within Euclidean distance ≤ 1 of their goals, with **no obstacle or inter-agent collision** along the episode.
+The code is split into a small **package** (`multi_uav_grid/`) suitable for import in other apps, with **CLI**, **logging**, **typed config**, and **no side effects on import**.
 
-## Optimizations (what changed and why)
+## Layout
+
+| Path | Role |
+|------|------|
+| `multi_uav_grid/config.py` | `RunConfig` dataclass |
+| `multi_uav_grid/environment.py` | `GridEnv`, `StepResult` |
+| `multi_uav_grid/planner.py` | `HybridPlanner` (BFS + greedy fallback) |
+| `multi_uav_grid/policy.py` | `Actor` (PyTorch) |
+| `multi_uav_grid/training.py` | `train()`, `evaluate()`, seed helper |
+| `multi_uav_grid/__main__.py` | CLI (`python -m multi_uav_grid`) |
+
+## Build
+
+Prerequisites: **Python 3.9+**, **pip**; optionally **Docker** / **Docker Compose** and **GNU Make**.
+
+### 1. Local install (editable package)
+
+From the repo root, enter this project and install into your environment (virtualenv recommended):
+
+```bash
+cd hybrid-uav-grid
+python3 -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -e .
+```
+
+Alternative: install dependencies only from `requirements.txt` (uses PyPI `torch`; not pinned to CPU wheels):
+
+```bash
+cd hybrid-uav-grid
+pip install -r requirements.txt
+pip install -e . --no-deps
+```
+
+Sanity check:
+
+```bash
+python -m multi_uav_grid --help
+```
+
+### 2. Docker image (CPU PyTorch)
+
+The image **`Dockerfile.multi-uav-grid`** installs CPU `torch` from the PyTorch wheel index (smaller than the default CUDA bundle).
+
+```bash
+cd hybrid-uav-grid
+docker build -f Dockerfile.multi-uav-grid -t multi-uav-grid:latest .
+```
+
+Run the default training + evaluation entrypoint:
+
+```bash
+docker run --rm multi-uav-grid:latest
+```
+
+Override CLI args (example):
+
+```bash
+docker run --rm multi-uav-grid:latest python -m multi_uav_grid --train-episodes 200 --test-episodes 50 --log-every 20
+```
+
+For **GPU**, use a separate Dockerfile that installs CUDA-enabled `torch`, then pass `--device cuda` when a GPU is available in the container.
+
+### 3. Docker Compose
+
+Build the service image and start the defined workload (default: 5000 train / 1000 test episodes, log every 100):
+
+```bash
+cd hybrid-uav-grid
+docker compose build
+docker compose up
+```
+
+One-shot build + run:
+
+```bash
+cd hybrid-uav-grid
+docker compose up --build
+```
+
+### 4. Make
+
+From `hybrid-uav-grid/`:
+
+```bash
+make help # lists targets (default when you run `make`)
+make install-editable
+make docker-build    # same as docker build -f Dockerfile.multi-uav-grid ...
+make docker-up       # compose up --build
+make run-smoke       # short local run
+```
+
+## Run (after local build)
+
+```bash
+cd hybrid-uav-grid
+source .venv/bin/activate   # if you use a venv
+python -m multi_uav_grid
+# or (after pip install -e .)
+multi-uav-grid
+```
+
+Useful flags: `--train-episodes`, `--test-episodes`, `--seed`, `--device cuda`, `--log-level DEBUG`, `--log-every N` (set `0` to log only summaries).
+
+## Programmatic use
+
+```python
+from multi_uav_grid import RunConfig, GridEnv, HybridPlanner, Actor, train, evaluate
+import numpy as np
+
+config = RunConfig(seed=42)
+rng_e = np.random.default_rng(0)
+rng_p = np.random.default_rng(1)
+env = GridEnv(config, rng=rng_e)
+planner = HybridPlanner(config.grid_size, rng=rng_p)
+actor = Actor(config.state_dim, config.num_uavs, config.action_dim, config.actor_hidden)
+train(config, env, planner, actor)
+evaluate(config, env, planner)
+```
+
+## Optimizations (algorithm)
 
 ### 1. BFS shortest-path planning
 
-**What:** Replaced one-step greedy moves (pick the neighbor closest to the goal) with breadth-first search from each UAV’s position to **any cell in the goal zone** (all cells with distance ≤ 1 to that UAV’s goal), respecting static obstacles and cells already reserved by other UAVs this timestep.
+**What:** Replaced one-step greedy moves with BFS from each UAV’s position to **any cell in the goal zone** (distance ≤ 1 to that goal), respecting obstacles and cells reserved by other UAVs this timestep.
 
-**Why:** Greedy steps get stuck in dead ends and waste steps; BFS finds a shortest feasible route when one exists, which sharply improves completion rate and stability across random maps.
+**Why:** Greedy steps get stuck; BFS finds a shortest feasible route when one exists.
 
 ### 2. Correct alignment of actions and grid moves in BFS
 
-**What:** The expansion rules in BFS use the same semantics as `next_pos` / `GridEnv.step`: action `0` = left (x−1), `1` = right (x+1), `2` = down (y−1), `3` = up (y+1). The first step along a found path is recovered by walking parent pointers back to the start.
+**What:** BFS expansions match `GridEnv.step`: `0` = left, `1` = right, `2` = down (y−1), `3` = up (y+1). First action is recovered via parent pointers.
 
-**Why:** If BFS uses the wrong (dx, dy) ↔ action mapping, the “optimal” first move does not match the environment, so the planner behaves incorrectly and success collapses.
+**Why:** Wrong (dx, dy) ↔ action mapping breaks the planner.
 
 ### 3. Goal-zone “holding” behavior
 
-**What:** When a UAV is already in the goal zone, it prefers moves that **keep** the next position inside the goal zone (with safe, non-reserved cells). Only if that is impossible does it fall back to other safe moves.
+**What:** Inside the goal zone, prefer moves that **stay** in the zone when possible.
 
-**Why:** There is no explicit “stay” action; without this rule, a UAV can reach the goal early and then **leave** the success region before the episode ends, failing the final success check even though it once arrived.
+**Why:** There is no “stay” action; otherwise agents can leave the success region before the episode ends.
 
 ### 4. Fallback when BFS is blocked
 
-**What:** If no BFS path exists to the goal zone (e.g. because another UAV reserved a critical cell this step), the planner falls back to the previous **distance-based greedy** rule (and then obstacle-only fallback).
+**What:** If no BFS path exists (e.g. reservations), fall back to distance-based greedy, then obstacle-only fallback.
 
-**Why:** Keeps behavior defined under multi-agent contention; BFS alone can return no move when reservations block all shortest paths.
+**Why:** Defined behavior under multi-agent contention.
 
-### 5. Imitation learning: cross-entropy, architecture, optimization
+### 5. Imitation learning
 
-**What:**
+**What:** Cross-entropy on logits vs hybrid actions; deeper MLP; gradient clipping; configurable LR.
 
-- Loss is **cross-entropy** between raw logits (pre-softmax) and the hybrid’s discrete actions, instead of mean squared error between softmax outputs and one-hot targets.
-- The Actor adds an extra **128-unit ReLU** layer before the output.
-- **Gradient clipping** (norm1.0) is applied after `backward`.
-- Adam learning rate was set to **1e-3** (from 3e-4).
-
-**Why:** Cross-entropy is the standard objective for classifying discrete actions, so the network learns cleaner policies from the hybrid labels. A slightly deeper head and stable optimization help the clone track the improved hybrid signal.
+**Why:** Proper discrete-action loss and stable optimization.
 
 ### 6. Goal-zone caching
 
-**What:** The set of grid cells in the goal zone for a given goal coordinate is cached in memory (`_GOAL_ZONE_CACHE`) so BFS does not rebuild that set every call.
+**What:** `functools.lru_cache` on goal-zone cell sets keyed by `(grid_size, gx, gy)`.
 
-**Why:** Small performance win; correctness is unchanged.
+**Why:** Avoids rebuilding the same sets every BFS call.
 
-## How to run
+## Production-oriented changes
 
-```bash
-python multi_uav_grid_hybrid_planner.py
-```
-
-Training runs for 5000 episodes; evaluation prints a cumulative training success rate per episode, then a **Final Test Success Rate** over 1000 episodes on the **fixed** map stored from training (`reset(fixed=True)`).
+- **Package layout** and explicit **public API** in `multi_uav_grid/__init__.py`
+- **`RunConfig`** instead of module-level constants
+- **`logging`** instead of `print`
+- **CLI** via `argparse` (`python -m multi_uav_grid`)
+- **Structured step API** (`StepResult`) and validation on actions
+- **Episode collision flag** aggregates collisions over all steps (not only the last)
+- **Seeding**: `set_global_seeds` plus independent NumPy generators for env vs planner
+- **`pyproject.toml`** / **`requirements.txt`** for packaging and deps
+- **Device** selection for the Actor (`cpu` / `cuda`)
 
 ## Expected outcome
 
-After these changes, **training and test success rates are typically well above 92%** on the default settings (40 random obstacle cells, 3 UAVs, 100 steps per episode), with the hybrid planner driving the measured success; the Actor is trained to imitate that planner.
+On default settings (20×20 grid, 40 obstacles, 3 UAVs, 100 steps), training and test success rates are **typically well above 92%**, driven by the hybrid planner; the Actor imitates it.

@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-uav-grid"
+version = "1.0.0"
+description = "Multi-UAV grid hybrid BFS planner with PyTorch behavior cloning"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.24",
+    "torch>=2.0",
+]
+
+[project.scripts]
+multi-uav-grid = "multi_uav_grid.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["multi_uav_grid*"]
