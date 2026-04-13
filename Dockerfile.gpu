@@ -1,0 +1,24 @@
+# GPU image — CUDA-enabled PyTorch base (NVIDIA driver + NVIDIA Container Toolkit on host).
+# Build: docker build -f Dockerfile.gpu -t multi-uav-grid:gpu .
+# Run:   docker run --rm --gpus all multi-uav-grid:gpu
+#
+# Tags: https://hub.docker.com/r/pytorch/pytorch/tags
+ARG PYTORCH_IMAGE=pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+
+FROM ${PYTORCH_IMAGE}
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_ROOT_USER_ACTION=ignore
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY multi_uav_grid ./multi_uav_grid
+
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir "numpy>=1.24" \
+    && pip install --no-cache-dir --no-deps -e .
+
+CMD ["python", "-m", "multi_uav_grid", "--device", "cuda"]

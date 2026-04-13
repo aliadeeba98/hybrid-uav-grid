@@ -1,0 +1,43 @@
+services:
+  # CPU — default image (Dockerfile). Service name matches Python package.
+  multi_uav_grid:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: multi-uav-grid:latest
+    command:
+      - python
+      - -m
+      - multi_uav_grid
+      - --train-episodes
+      - "5000"
+      - --test-episodes
+      - "1000"
+      - --log-every
+      - "100"
+      - --log-level
+      - INFO
+
+  # GPU — Dockerfile.gpu; requires NVIDIA Container Toolkit.
+  # docker compose --profile gpu up --build multi_uav_grid_gpu
+  multi_uav_grid_gpu:
+    profiles: ["gpu"]
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    image: multi-uav-grid:gpu
+    gpus: all
+    command:
+      - python
+      - -m
+      - multi_uav_grid
+      - --device
+      - cuda
+      - --train-episodes
+      - "5000"
+      - --test-episodes
+      - "1000"
+      - --log-every
+      - "100"
+      - --log-level
+      - INFO
