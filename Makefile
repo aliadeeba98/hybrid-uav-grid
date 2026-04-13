@@ -8,11 +8,13 @@ PYTHON        ?= python3
 PIP           ?= $(PYTHON) -m pip
 COMPOSE       ?= docker compose
 IMAGE          ?= multi-uav-grid:latest
-DOCKERFILE     ?= Dockerfile.multi-uav-grid
+IMAGE_GPU      ?= multi-uav-grid:gpu
+DOCKERFILE     ?= Dockerfile
+DOCKERFILE_GPU ?= Dockerfile.gpu
 TRAIN_EP      ?= 5000
 TEST_EP       ?= 1000
 
-.PHONY: help install install-editable run run-smoke run-full docker-build docker-up docker-run docker-run-smoke clean
+.PHONY: help install install-editable run run-smoke run-full docker-build docker-build-gpu docker-up docker-up-gpu docker-run docker-run-smoke docker-run-gpu-smoke clean
 
 help: ## Show available targets
 	@echo "hybrid-uav-grid"
@@ -34,17 +36,26 @@ run-smoke: ## Short local run for quick verification
 run-full: ## Local run with TRAIN_EP and TEST_EP (default 5000 / 1000); e.g. make run-full TRAIN_EP=200
 	$(PYTHON) -m multi_uav_grid --train-episodes $(TRAIN_EP) --test-episodes $(TEST_EP) --log-every 100 --log-level INFO
 
-docker-build: ## Build the Docker image
+docker-build: ## Build the CPU Docker image (default Dockerfile)
 	docker build -f $(DOCKERFILE) -t $(IMAGE) .
 
-docker-up: ## Build and run via docker compose (full training workload)
-	$(COMPOSE) up --build
+docker-build-gpu: ## Build the CUDA Docker image (Dockerfile.gpu)
+	docker build -f $(DOCKERFILE_GPU) -t $(IMAGE_GPU) .
 
-docker-run: ## Run the image with default CMD (same as compose workload without compose file)
+docker-up: ## Build and run CPU service via docker compose
+	$(COMPOSE) up --build multi_uav_grid
+
+docker-up-gpu: ## Build and run GPU service (needs nvidia-container-toolkit)
+	$(COMPOSE) --profile gpu up --build multi_uav_grid_gpu
+
+docker-run: ## Run the CPU image with default CMD
 	docker run --rm $(IMAGE)
 
-docker-run-smoke: ## Run a short job inside the container
+docker-run-smoke: ## Short job in the CPU container
 	docker run --rm $(IMAGE) $(PYTHON) -m multi_uav_grid --train-episodes 20 --test-episodes 10 --log-every 5
+
+docker-run-gpu-smoke: ## Short job with GPU (--gpus all)
+	docker run --rm --gpus all $(IMAGE_GPU) $(PYTHON) -m multi_uav_grid --device cuda --train-episodes 20 --test-episodes 10 --log-every 5
 
 clean: ## Remove local Python caches and egg-info
 	rm -rf build dist *.egg-info .eggs

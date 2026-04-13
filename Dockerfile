@@ -1,4 +1,5 @@
-# CPU-only PyTorch keeps the image smaller than the default CUDA wheels.
+# Default (CPU) image — PyTorch CPU wheels for a smaller image.
+# Build: docker build -t multi-uav-grid:latest .
 FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -16,5 +17,4 @@ RUN pip install --upgrade pip \
     && pip install --no-cache-dir "numpy>=1.24" \
     && pip install --no-cache-dir --no-deps -e .
 
-# Override with `docker run ... python -m multi_uav_grid --train-episodes 100 ...`
 CMD ["python", "-m", "multi_uav_grid"]
