@@ -2,7 +2,37 @@
 
 Grid-world multi-agent navigation: a **BFS hybrid planner** drives each step; a small **PyTorch** policy learns it via **behavior cloning**. Success = every UAV within distance **≤ 1** of its goal, **no collisions** (obstacles or agents). Packaged as **`multi_uav_grid`** with a CLI, Docker (**`Dockerfile`** / **`Dockerfile.gpu`**), and Make.
 
-## Layout
+## File structure
+
+```text
+hybrid-uav-grid/
+├── Dockerfile              # CPU image (default)
+├── Dockerfile.gpu          # CUDA image
+├── Makefile
+├── README.md
+├── TESTING_README.md       # validation runs, log paths, benchmarks
+├── docker-compose.yml
+├── pyproject.toml
+├── requirements.txt
+├── .dockerignore
+├── .gitignore
+├── logs/                   # captured CLI output (see logs/README.md)
+│   ├── smoke/              # quick smoke + short runs
+│   ├── benchmarks/         # longer seeded benchmarks
+│   └── archive/            # older logs for comparison
+├── scripts/
+│   └── smoke_train.py
+└── multi_uav_grid/
+    ├── __init__.py
+    ├── __main__.py         # CLI entry
+    ├── config.py
+    ├── environment.py
+    ├── planner.py
+    ├── policy.py
+    └── training.py
+```
+
+## Modules
 
 | Path | Role |
 |------|------|

@@ -1,0 +1,10 @@
+smoke_import_train_eval_ok
+INFO multi_uav_grid: SAC init seed=99 (pso=False)
+INFO multi_uav_grid: expert_prefill_episodes=400 (effective=0)
+INFO multi_uav_grid: episode 5 success_rate=0.00%
+INFO multi_uav_grid: episode 10 success_rate=0.00%
+INFO multi_uav_grid: episode 15 success_rate=0.00%
+INFO multi_uav_grid: episode 20 success_rate=0.00%
+INFO multi_uav_grid: training finished success_rate=0.00% (0/20)
+INFO multi_uav_grid: eval complete success_rate=0.00% (0/10)
+INFO multi_uav_grid: final_test success_rate=0.00%

@@ -1,0 +1,25 @@
+INFO multi_uav_grid: SAC init seed=42 (pso=False)
+INFO multi_uav_grid: expert_prefill_episodes=400 (effective=300)
+INFO multi_uav_grid: episode 20 success_rate=100.00%
+INFO multi_uav_grid: episode 40 success_rate=100.00%
+INFO multi_uav_grid: episode 60 success_rate=100.00%
+INFO multi_uav_grid: episode 80 success_rate=100.00%
+INFO multi_uav_grid: episode 100 success_rate=100.00%
+INFO multi_uav_grid: episode 120 success_rate=100.00%
+INFO multi_uav_grid: episode 140 success_rate=100.00%
+INFO multi_uav_grid: episode 160 success_rate=100.00%
+INFO multi_uav_grid: episode 180 success_rate=100.00%
+INFO multi_uav_grid: episode 200 success_rate=100.00%
+INFO multi_uav_grid: episode 220 success_rate=100.00%
+INFO multi_uav_grid: episode 240 success_rate=100.00%
+INFO multi_uav_grid: episode 260 success_rate=100.00%
+INFO multi_uav_grid: episode 280 success_rate=99.64%
+INFO multi_uav_grid: episode 300 success_rate=99.67%
+INFO multi_uav_grid: episode 320 success_rate=93.44%
+INFO multi_uav_grid: episode 340 success_rate=87.94%
+INFO multi_uav_grid: episode 360 success_rate=83.06%
+INFO multi_uav_grid: episode 380 success_rate=78.68%
+INFO multi_uav_grid: episode 400 success_rate=74.75%
+INFO multi_uav_grid: training finished success_rate=74.75% (299/400)
+INFO multi_uav_grid: eval complete success_rate=0.00% (0/80)
+INFO multi_uav_grid: final_test success_rate=0.00%

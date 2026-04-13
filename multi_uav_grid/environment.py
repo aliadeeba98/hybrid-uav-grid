@@ -107,10 +107,19 @@ class GridEnv:
                 if i != j and p == new_pos[j]:
                     collision = True
 
+        old_sum_dist = sum(
+            float(np.linalg.norm(np.array(self.pos[i]) - np.array(self.goals[i])))
+            for i in range(self.num_uavs)
+        )
         self.pos = new_pos
+        new_sum_dist = sum(
+            float(np.linalg.norm(np.array(self.pos[i]) - np.array(self.goals[i])))
+            for i in range(self.num_uavs)
+        )
 
         rewards: list[float] = []
         done = True
+        cp = self._config.collision_penalty
 
         for i in range(self.num_uavs):
             dist = float(np.linalg.norm(np.array(self.pos[i]) - np.array(self.goals[i])))
@@ -120,8 +129,12 @@ class GridEnv:
             else:
                 done = False
             if collision:
-                r -= 50.0
+                r -= cp
             rewards.append(r)
 
+        total = float(sum(rewards))
+        if not collision and self._config.dense_reward_coef > 0.0:
+            total += self._config.dense_reward_coef * max(0.0, old_sum_dist - new_sum_dist)
+
         obs = self.get_state()
-        return StepResult(observation=obs, reward=float(sum(rewards)), done=done, collision=collision)
+        return StepResult(observation=obs, reward=total, done=done, collision=collision)

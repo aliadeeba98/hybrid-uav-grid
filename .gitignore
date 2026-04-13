@@ -45,9 +45,9 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Logs / local output
-*.log
-logs/
+# Logs / local output (committed benchmark + smoke logs live under logs/)
+/*.log
+# logs/tmp/
 
 # torch / checkpoints (if you add saving later)
 *.pt
