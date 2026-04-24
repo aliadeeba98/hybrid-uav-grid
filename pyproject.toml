@@ -22,7 +22,3 @@ include = ["multi_uav_grid*"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["."]

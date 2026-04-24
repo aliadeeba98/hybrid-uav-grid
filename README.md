@@ -2,6 +2,8 @@
 
 Grid-world multi-agent navigation: a **BFS hybrid planner** drives each step; a small **PyTorch** policy learns it via **behavior cloning**. Success = every UAV within distance **≤ 1** of its goal, **no collisions** (obstacles or agents). Packaged as **`multi_uav_grid`** with a CLI, Docker (**`Dockerfile`** / **`Dockerfile.gpu`**), and Make.
 
+**Related (separate install):** PSO + hybrid PSO–SAC from the same research line lives in a sibling project: **`../paper_path_planning/`** (own `pyproject.toml` and tests).
+
 ## File structure
 
 ```text
@@ -10,7 +12,6 @@ hybrid-uav-grid/
 ├── Dockerfile.gpu          # CUDA image
 ├── Makefile
 ├── README.md
-├── README_PAPER.md         # PSO + hybrid PSO–SAC (paper) implementation & results
 ├── TESTING_README.md       # validation runs, log paths, benchmarks
 ├── docker-compose.yml
 ├── pyproject.toml
