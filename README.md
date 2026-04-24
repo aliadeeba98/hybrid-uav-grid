@@ -10,6 +10,7 @@ hybrid-uav-grid/
 ├── Dockerfile.gpu          # CUDA image
 ├── Makefile
 ├── README.md
+├── README_PAPER.md         # PSO + hybrid PSO–SAC (paper) implementation & results
 ├── TESTING_README.md       # validation runs, log paths, benchmarks
 ├── docker-compose.yml
 ├── pyproject.toml

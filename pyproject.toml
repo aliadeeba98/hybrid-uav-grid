@@ -19,3 +19,10 @@ multi-uav-grid = "multi_uav_grid.__main__:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["multi_uav_grid*"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
